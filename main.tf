@@ -11,3 +11,7 @@ terraform {
     }
   }
 }
+
+locals {
+  test = "abcdefg"
+}
