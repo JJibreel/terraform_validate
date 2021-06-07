@@ -51,6 +51,8 @@ jobs:
         tflint_version: v0.29.0
     - name: Show version
       run: tflint --version
+    - name: Init TFLint
+      run: tflint --init
     - name: Run TFLint
       id: tflint
       run: tflint
