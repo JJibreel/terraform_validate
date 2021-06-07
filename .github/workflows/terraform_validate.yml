@@ -1,19 +1,73 @@
 on:
-  push:
+  pull_request:
     branches: [ main ]
 
 jobs:
   terraform:
-    name: 'Terraform'
+    name: 'Check Terraform State'
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v1
+    - name: Terraform Init
+      id: init
+      run: terraform init
+      continue-on-error: true  
     - name: Terraform Format
       id: fmt
       run: terraform fmt -check
+      continue-on-error: true      
     - name: Terraform Validate
       id: validate
       run: terraform validate
+      continue-on-error: true  
+    - name: Update Pull Request
+      uses: actions/github-script@0.9.0
+      if: github.event_name == 'pull_request'
+      with:
+        script: |
+          const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+          #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+          #### Terraform Validate ⚙️\`${{ steps.validate.outcome }}\`
+          *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+
+          github.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: output
+          })
+
+  tflint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      name: Checkout source code
+    - uses: terraform-linters/setup-tflint@v1
+      name: Setup TFLint
+      with:
+        tflint_version: latest
+    - name: Show version
+      run: tflint --version
+    - name: Init TFLint
+      run: tflint --init
+    - name: Run TFLint
+      id: tflint
+      run: tflint
+      continue-on-error: true
+    - name: Update Pull Request
+      uses: actions/github-script@0.9.0
+      if: github.event_name == 'pull_request'
+      with:
+        script: |
+          const output = `#### Terraform Unsued Variables 🖌\`${{ steps.tflint.outcome }}\`
+          *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+
+          github.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: output
+          })

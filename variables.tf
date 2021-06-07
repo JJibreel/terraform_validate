@@ -1,0 +1,3 @@
+variable "unused" {
+  type = string
+}
